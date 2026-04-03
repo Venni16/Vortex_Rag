@@ -129,6 +129,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
+<p>
+  Developed by <strong>Vennilavan Manoharan</strong> • 2026
+</p>
+
 <p align="center">
-  Built with ❤️ for the next generation of AI-powered learning.
+Built with ❤️ for the next generation of AI-powered learning.
 </p>

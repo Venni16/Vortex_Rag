@@ -134,6 +134,10 @@ Aiservice/
 
 ---
 
+<p>
+  Developed by <strong>Vennilavan Manoharan</strong> • 2026
+</p>
+
 <p align="center">
-  <strong>Vortex AI Core</strong> — Powering the Future of Agentic Learning.
+<strong>Vortex AI Core </strong> — Powering the Future of Agentic Learning.
 </p>
