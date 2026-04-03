@@ -75,7 +75,7 @@ graph TD
 
 ---
 <p>
-For detailed Ai Architecture ,Go inside Aiservice and you an view the full Arch
+For detailed Ai Architecture ,Go inside Aiservice and you can view the full Arch
 </p>
 
 ## 🏁 Getting Started
