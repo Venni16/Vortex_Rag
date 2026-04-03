@@ -126,7 +126,7 @@ The UI follows a **"Cyber-Refined Noir"** aesthetic:
 -   **Palette**: Carbon Black (#050505), Neon Cyan (#00ffff), Neon Pink (#ff00ff).
 -   **Interactions**: Scanline animations, glassmorphic cards, and neon-glow transitions.
 
-<p><strong>Under Develpoment...</strong></p>
+<p><strong>Under Development...</strong></p>
 
 ## 📄 License
 
