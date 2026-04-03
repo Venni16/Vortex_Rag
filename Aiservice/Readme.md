@@ -34,7 +34,7 @@ graph TD
             Worker -->|PDF/DOCX| DocLoader[Document Loader]
             Worker -->|URL| Scraper[Recursive Web Crawler]
             DocLoader & Scraper -->|Raw Text| Chunker[Semantic Chunker]
-            Chunker -->|Raw Chunks| Refiner[AI Refinement Layer (Llama 3.2)]
+            Chunker -->|Raw Chunks| Refiner["AI Refinement Layer (Llama 3.2)"]
             Refiner -->|Structured JSON| Embedder[Sentence-Transformers]
             Embedder -->|Vectors + Metadata| VectorDB[(Qdrant Vector Store)]
         end
