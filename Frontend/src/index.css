@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-carbon text-neon-cyan font-mono overflow-hidden;
+    background-image: 
+      linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+}
+
+/* ── CRT Static & Scanline Effects ────────────────────────────────────────── */
+.scanline {
+  @apply fixed inset-0 pointer-events-none z-50;
+  background: linear-gradient(
+    to bottom,
+    transparent 50%,
+    rgba(0, 0, 0, 0.1) 51%,
+    rgba(255, 255, 255, 0.02) 52%
+  );
+  background-size: 100% 4px;
+}
+
+.scanline-moving {
+  @apply fixed inset-0 pointer-events-none z-50 opacity-20;
+  background: linear-gradient(to bottom, transparent, rgba(0, 255, 255, 0.5), transparent);
+  height: 100px;
+  animation: scanline 8s linear infinite;
+}
+
+/* ── Cyber Glitch Shadows & Outlines ──────────────────────────────────────── */
+.neon-border {
+  @apply border-2 border-neon-cyan shadow-[0_0_15px_rgba(0,255,255,0.5)];
+}
+
+.neon-pink-border {
+  @apply border-2 border-neon-pink shadow-[0_0_15px_rgba(255,0,255,0.5)];
+}
+
+.neon-text-cyan {
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+.neon-text-pink {
+  @apply text-neon-pink;
+  text-shadow: 0 0 10px rgba(255, 0, 255, 0.8), 0 0 20px rgba(255, 0, 255, 0.3);
+}
+
+/* ── Clipped Corner Tech Style ───────────────────────────────────────────── */
+.tech-card {
+  @apply bg-carbon border-l-4 border-t-2 border-neon-cyan p-6 relative;
+  clip-path: polygon(
+    0% 0%, 
+    calc(100% - 20px) 0%, 
+    100% 20px, 
+    100% 100%, 
+    20px 100%, 
+    0% calc(100% - 20px)
+  );
+}
+
+.tech-btn {
+  @apply px-6 py-2 bg-transparent border border-neon-cyan text-neon-cyan transition-all duration-300;
+  @apply hover:bg-neon-cyan hover:text-carbon hover:shadow-[0_0_20px_#00ffff];
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+
+/* ── Custom Scrollbar ── */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-carbon;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-neon-cyan shadow-[0_0_10px_#00ffff];
+}
