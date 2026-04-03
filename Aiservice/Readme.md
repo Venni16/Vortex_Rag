@@ -1,4 +1,4 @@
-# <div align="center"> Vortex AI Core </div>
+# <div align="center"> Vortex AI Core: Full Architecture </div>
 <div align="center">
   <img src="../docs/assets/vortex_rag_logo.png" alt="Vortex RAG Logo" width="200"/>
   <br>
@@ -12,127 +12,123 @@
 
 ---
 
-## 🚀 Overview
+## 🧬 Full Architecture Overview
 
-The **Vortex AI Core** is a high-concurrency, low-latency microservice built with **FastAPI**. It handles the heavy lifting of knowledge ingestion, semantic embedding, and context-aware generation. Designed for scalability, it integrates seamlessly with **Qdrant** for vector storage and **Redis** for distributed caching.
+The **Vortex AI Core** is designed for high-concurrency, low-latency AI interactions. The architecture is split into two primary asynchronous pipelines: the **Knowledge Ingestion Pipeline** and the **RAG Query Pipeline**.
 
-### Core Objectives:
-*   ⚡ **Low-Latency Inference**: Optimized for sub-15s E2E response times.
-*   🧠 **Smart Knowledge Ingestion**: Deterministic hashing and recursive web crawling.
-*   🛡️ **Production-Ready Security**: Built-in SSRF protection and rate limiting.
-*   👨‍🏫 **Tutor-Centric Responses**: Specialized prompting for educational context.
-
----
-
-## 🏗️ Technical Architecture
+### 🏗️ Global System Diagram
 
 ```mermaid
 graph TD
-    API[FastAPI Endpoints] --> RateLimit[Rate Limiter / Security]
-    RateLimit --> Logic{Request Type}
-    Logic -->|Query| RAG[RAG Pipeline]
-    Logic -->|Ingest| Worker[Background Ingestion]
-    
-    RAG --> Embed[Sentence-Transformers]
-    Embed --> Qdrant[(Qdrant Vector DB)]
-    Qdrant --> LLM[Llama 3.2 3B / quantized]
-    LLM --> Cache[(Redis Cache)]
-    
-    Worker --> Scraper[Deep Crawler / Scrapy]
-    Worker --> Chunker[Semantic Chunker]
-    Chunker --> Embed
+    subgraph "Clients & Gateway"
+        User((User)) -->|HTTPS| Frontend[React UI]
+        Frontend -->|API| Gateway[Express Gateway]
+    end
+
+    subgraph "AI Core (FastAPI)"
+        Gateway -->|Internal RPC| Router[Ingestion/Query Routers]
+        
+        subgraph "Ingestion Pipeline"
+            Router -->|POST /upload| Validator[Sync Validator]
+            Validator -->|Background| Worker[Job Worker]
+            Worker -->|PDF/DOCX| DocLoader[Document Loader]
+            Worker -->|URL| Scraper[Recursive Web Crawler]
+            DocLoader & Scraper -->|Raw Text| Chunker[Semantic Chunker]
+            Chunker -->|Raw Chunks| Refiner[AI Refinement Layer (Llama 3.2)]
+            Refiner -->|Structured JSON| Embedder[Sentence-Transformers]
+            Embedder -->|Vectors + Metadata| VectorDB[(Qdrant Vector Store)]
+        end
+
+        subgraph "RAG Query Pipeline"
+            Router -->|POST /query| CacheCheck{Redis Cache Hit?}
+            CacheCheck -->|Yes| FastPath[Return Cached Answer]
+            CacheCheck -->|No| Retriever[Context Retriever]
+            Retriever -->|Embed Query| Embedder
+            Retriever -->|Search Top-K| VectorDB
+            Retriever -->|Context Chunks| PromptEngine[Prompt Construction]
+            PromptEngine -->|System + Context + Query| LLM[Inference (Llama 3.2 3B)]
+            LLM -->|Stream/JSON| Output[Response Generator]
+            Output -->|Background| CacheSet[Update Redis]
+            Output -->|Final| User
+        end
+    end
+
+    subgraph "Infrastructure"
+        Redis[(Redis Cache)]
+        Qdrant[(Qdrant Vector DB)]
+        LLM_CPP[Llama-cpp Engine]
+    end
+
+    CacheCheck -.-> Redis
+    CacheSet -.-> Redis
+    LLM -.-> LLM_CPP
 ```
 
 ---
 
-## ⚡ Low-Latency Design Principles
+## 📥 1. AI-Driven Ingestion Lifecycle
 
-### 1. Precomputational Strategy
-Knowledge chunks are embedded and indexed in **Qdrant** *before* any query occurs. This reduces the query-time overhead to only `Embedding + Retrieval + Inference`.
+Unlike standard RAG systems, Vortex employs an **AI Refinement Layer** before vectorization. This ensures that the vector database contains high-quality, education-centric knowledge rather than raw noise.
 
-### 2. Inference Optimization
-*   **Model Selection**: Optimized for 4-bit quantized GGUF/HF models (Llama 3.2 3B).
-*   **Batching**: Concurrent request handling using Python's `asyncio` and thread pools for CPU-bound tasks.
-*   **Persistent Connections**: Pooled connections for Redis and Qdrant to minimize handshake latency.
+### The Metadata Distillation Process:
+Every text chunk passes through a specialized **System Instruction** for **Llama 3.2 3B**:
+1.  **Noise Removal**: Boilerplate, ads, and repetitions are stripped.
+2.  **Classification**: Chunks are tagged by `framework` (React, Node, etc.), `topic`, and `subtopic`.
+3.  **Educational Scaling**: Each chunk is assigned a `difficulty` level (beginner | intermediate | advanced).
+4.  **Keyword Extraction**: Distilling core concepts into a `keywords` array to enhance dense retrieval.
 
-### 3. Distributed Caching (Redis)
-Caches both the **Retrieved Context** and the **Final Answer** for frequent queries, slashing response time from seconds to milliseconds.
-
----
-
-## ⚙️ Installation & Development
-
-### Local Setup
-1.  **Environment**:
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # atau venv\Scripts\activate pada Windows
-    pip install -r requirements.txt
-    ```
-
-2.  **Configuration**:
-    Create a `.env` file from `.env.example`:
-    ```dotenv
-    MODEL_PATH=./models/llama-3.2-3b-q4.gguf
-    QDRANT_HOST=localhost
-    REDIS_HOST=localhost
-    ```
-
-3.  **Run Service**:
-    ```bash
-    # Debug Mode
-    uvicorn main:app --reload --port 8000
-    
-    # Production Mode (Multi-worker)
-    uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
-    ```
-
----
-
-## 📡 API Reference
-
-### `POST /query`
-Main RAG endpoint for student/user questions.
-*   **Payload**: `{ "text": "What is React hooks?", "user_id": "123" }`
-*   **Security**: Rate-limited and prompt-injection-sanitized.
-
-### `POST /upload-doc`
-Handles PDF, DOCX, and TXT ingestion.
-*   **Process**: File Validation → Chunking → Embedding → Upsert to Qdrant.
-
-### `POST /upload-url`
-Recursive web crawler for educational site ingestion.
-*   **Process**: Deep Scrape (Lvl-1) → Content Sanitization → Vectorization.
-
----
-
-## 🔐 Security Standards
-
-> [!IMPORTANT]
-> The AI Core implements strict validation to prevent common RAG vulnerabilities.
-
-*   **File Sanitization**: Strict mime-type checks for all uploads.
-*   **URL Whitelisting**: Prevents SSRF through malicious link ingestion.
-*   **Context Isolation**: Ensures users only retrieve context from relevant knowledge partitions.
-
----
-
-## 🛠️ Project Structure
-
-```text
-Aiservice/
-├── main.py            # FastAPI Entry Point
-├── config.py          # Global Configuration
-├── ingestion/         # Scraping & Doc Parsing Logic
-│   ├── web_scraper.py
-│   └── chunker.py
-├── vectorstore/       # Qdrant & Embedding Integration
-├── rag/               # Prompt Engineering & LLM Interface
-├── security/          # Rate-limiting & SSRF Protection
-└── cache/             # Redis Client Implementation
+**Example Structured Storage:**
+```json
+{
+  "framework": "react",
+  "topic": "hooks",
+  "subtopic": "useState",
+  "cleaned_text": "useState is a Hook that lets you add React state to function components...",
+  "keywords": ["react", "useState", "state", "hook"],
+  "difficulty": "beginner"
+}
 ```
 
 ---
+
+## 💬 2. RAG Query Execution (Sub-15s Target)
+
+The query pipeline is optimized for performance using **Asynchronous I/O** and **Thread-Pool Offloading**.
+
+### Step-by-Step Flow:
+1.  **SSRF & Prompt Sanitization**: Synchronous validation to prevent injection attacks and illegal URL access.
+2.  **Distributed Caching**: Redis-backed fast-path for query results. If a query hash exists, the response is returned in `< 50ms`.
+3.  **Semantic Retrieval**:
+    *   Query is vectorized using `Sentence-Transformers`.
+    *   Qdrant performs a similarity search, returning the **Top-K** (default 3-5) most relevant context chunks.
+4.  **Prompt Engineering**:
+    *   System Prompt forces "AI Tutor" behavior (concise, code-first, theory-backed).
+    *   Context is injected into a specialized **Llama 3.2 Chat Template**.
+5.  **Non-Blocking Inference**: The heavy LLM generation call is executed in a `ThreadPoolExecutor` to ensure the FastAPI event loop remains responsive to other users.
+
+---
+
+## 🛠️ Technical Specifications
+
+### AI Models & Engines
+*   **Main LLM**: `Llama 3.2 3B` (GGUF 4-bit Quantized)
+*   **Embedding Model**: `all-MiniLM-L6-v2` (Fast & Efficient)
+*   **Inference Engine**: `llama-cpp-python` (Optimized for CPU/GPU threading)
+
+### Storage & Performance
+*   **Vector Database**: `Qdrant` (Indexing: HNSW, Distance: Cosine)
+*   **Caching Layer**: `Redis` (Atomic query-context mapping)
+*   **Concurrency**: 4+ Workers with `uvicorn` (Multi-user concurrency support)
+
+### Infrastructure Layer
+*   **Orchestration**: `Docker Compose`
+*   **Internal Network**: `rag-net` (Subnet: 172.x.x.x)
+*   **Volumes**: Persistent storage for Qdrant (`qdrant_storage`) and models.
+
+---
+<p>
+<strong>Under Development...</strong>
+</p>
 
 <p>
   Developed by <strong>Vennilavan Manoharan</strong> • 2026
